@@ -2,6 +2,8 @@
 title: Adaptive Adversary Emulation Applied to Critical Infrastructures and IIoT Networks
 authors:
   - Parada, Javier
+  - Reyes, Mario
+  - Lopez, Javier
 venue: Jornadas Nacionales de Investigación en Ciberseguridad (JNIC 2026), May 2026
 year: 2026
 abbr: JNIC 2026
