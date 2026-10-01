@@ -42,7 +42,7 @@ export const nav = [
   { label: 'About', href: '/' },
   { label: 'Activities', href: '/activities' },
   { label: 'Publications', href: '/publications' },
-  { label: 'Projects', href: '/projects' },
+  // Projects is hidden for now: restore this entry and rename src/pages/_projects.astro.
   { label: 'CV', href: '/cv' },
   { label: 'Gallery', href: '/gallery' },
 ];
