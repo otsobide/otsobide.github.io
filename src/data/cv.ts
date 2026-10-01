@@ -71,17 +71,7 @@ export const education: TimelineEntry[] = [
   },
 ];
 
-export const researchExperience: TimelineEntry[] = [
-  {
-    period: '2026 (4 months)',
-    role: 'Cybersecurity Researcher',
-    where: 'NICT, Japan National Cybersecurity Agency',
-    location: 'Tokyo, Japan',
-    bullets: [
-      'Cybersecurity research focused on Cyber Threat Intelligence, Threat Hunting and Adversarial Emulation.',
-      'Analysis and detection of advanced threats, simulation of malicious behaviors, and development of tools and methodologies to anticipate and respond to security incidents.',
-    ],
-  },
+export const experience: TimelineEntry[] = [
   {
     period: '2024 – Present',
     role: 'Cybersecurity Researcher',
@@ -103,9 +93,16 @@ export const researchExperience: TimelineEntry[] = [
       'Leveraging digital twins to model and simulate complex systems for threat anticipation, and deploying honeypots to attract, deceive and analyze adversarial behaviors.',
     ],
   },
-];
-
-export const industryExperience: TimelineEntry[] = [
+  {
+    period: '2026 (4 months)',
+    role: 'Cybersecurity Researcher',
+    where: 'NICT, Japan National Cybersecurity Agency',
+    location: 'Tokyo, Japan',
+    bullets: [
+      'Cybersecurity research focused on Cyber Threat Intelligence, Threat Hunting and Adversarial Emulation.',
+      'Analysis and detection of advanced threats, simulation of malicious behaviors, and development of tools and methodologies to anticipate and respond to security incidents.',
+    ],
+  },
   {
     period: '2020 – 2023',
     role: 'Software Engineer',

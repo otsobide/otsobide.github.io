@@ -42,7 +42,8 @@ export const nav = [
   { label: 'About', href: '/' },
   { label: 'Activities', href: '/activities' },
   { label: 'Publications', href: '/publications' },
-  // Projects is hidden for now: restore this entry and rename src/pages/_projects.astro.
   { label: 'CV', href: '/cv' },
-  { label: 'Gallery', href: '/gallery' },
+  // Projects and Gallery are hidden for now: to bring one back, restore its entry here
+  // ({ label: 'Projects', href: '/projects' } / { label: 'Gallery', href: '/gallery' })
+  // and rename src/pages/_projects.astro or src/pages/_gallery.astro back.
 ];
