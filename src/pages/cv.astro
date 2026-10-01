@@ -7,9 +7,8 @@ import {
   awards,
   certifications,
   education,
-  industryExperience,
+  experience,
   languages,
-  researchExperience,
   researchProfile,
 } from '../data/cv';
 import { site } from '../data/site';
@@ -37,13 +36,13 @@ const pdf = url(site.cv);
     </header>
 
     <section>
-      <h2 class="section-title" data-reveal>Education</h2>
-      <Timeline items={education} />
+      <h2 class="section-title" data-reveal>Experience</h2>
+      <Timeline items={experience} />
     </section>
 
     <section>
-      <h2 class="section-title" data-reveal>Research Experience</h2>
-      <Timeline items={researchExperience} />
+      <h2 class="section-title" data-reveal>Education</h2>
+      <Timeline items={education} />
     </section>
 
     <section>
@@ -62,11 +61,6 @@ const pdf = url(site.cv);
     <section>
       <h2 class="section-title" data-reveal>Certifications</h2>
       <Timeline items={certifications} />
-    </section>
-
-    <section>
-      <h2 class="section-title" data-reveal>Industry Experience</h2>
-      <Timeline items={industryExperience} />
     </section>
 
     <section>
