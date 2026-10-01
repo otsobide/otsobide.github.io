@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Scrapes public photos from a Flickr photostream and writes
- * public/gallery.json.
+ * data/gallery.json.
  *
  * No Flickr API key is used. The script fetches the paginated
  * photostream HTML pages, extracts each photo's id/secret/server plus
@@ -17,12 +17,13 @@
  * CDN only serves image bytes when a visitor scrolls to them
  * (native loading="lazy" + client-side pagination).
  */
-import { writeFile, mkdir } from 'node:fs/promises'
+import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUTPUT = resolve(__dirname, '..', 'data', 'gallery.json')
+const COUNTRIES = resolve(__dirname, '..', 'data', 'countries.json')
 
 const USER = process.env.FLICKR_USER || 'tanukifilm'
 const CONCURRENCY = Number(process.env.FLICKR_CONCURRENCY || 8)
@@ -30,43 +31,11 @@ const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 /**
- * Only tags in this set become filter chips on /gallery. Add new
- * countries here as photos from new places are uploaded to Flickr.
+ * Only tags listed in data/countries.json become filter chips on /gallery.
+ * Add new countries there (tag, display name and ISO flag code) as photos
+ * from new places are uploaded to Flickr.
  */
-const COUNTRY_TAGS = new Set([
-  'spain',
-  'japan',
-  'france',
-  'portugal',
-  'italy',
-  'germany',
-  'uk',
-  'usa',
-  'mexico',
-  'brazil',
-  'china',
-  'korea',
-  'thailand',
-  'vietnam',
-  'india',
-  'morocco',
-  'greece',
-  'netherlands',
-  'belgium',
-  'switzerland',
-  'austria',
-  'poland',
-  'czechia',
-  'hungary',
-  'sweden',
-  'norway',
-  'denmark',
-  'finland',
-  'ireland',
-  'russia',
-  'turkey',
-  'egypt',
-])
+const COUNTRY_TAGS = new Set(Object.keys(JSON.parse(await readFile(COUNTRIES, 'utf8'))))
 
 async function fetchText(url) {
   const res = await fetch(url, { headers: { 'user-agent': UA } })
@@ -262,6 +231,9 @@ async function main() {
       tags: countryTags,
       caption,
       date: (p.dateTaken || '').slice(0, 10) || undefined,
+      // Used by the gallery to reserve each photo's space before it loads.
+      width: p.width,
+      height: p.height,
     }
   })
 

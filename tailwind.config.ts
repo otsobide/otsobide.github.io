@@ -1,31 +1,40 @@
 import type { Config } from 'tailwindcss'
 import defaultTheme from 'tailwindcss/defaultTheme'
 
+/** Colour token backed by a CSS variable from assets/css/main.css (switches with the theme). */
+const v = (name: string) => `rgb(var(--${name}) / <alpha-value>)`
+
 export default {
   content: [
     './components/**/*.{vue,ts}',
     './layouts/**/*.vue',
     './pages/**/*.vue',
     './app.vue',
+    './error.vue',
     './content/**/*.md',
   ],
   theme: {
     extend: {
       colors: {
         ink: {
-          DEFAULT: '#1a1613',
-          soft: '#4a4139',
-          mute: '#8a8176',
+          DEFAULT: v('fg'),
+          soft: v('fg-soft'),
+          mute: v('fg-mute'),
         },
         paper: {
-          DEFAULT: '#f5f0e8',
-          soft: '#ebe3d5',
-          tint: '#faf5ec',
+          DEFAULT: v('bg'),
+          soft: v('bg-soft'),
+          tint: v('bg-tint'),
+        },
+        line: {
+          DEFAULT: v('border'),
+          strong: v('border-strong'),
         },
         accent: {
-          DEFAULT: '#c15f3c',
-          soft: '#dc815c',
+          DEFAULT: v('accent'),
+          soft: v('accent-soft'),
         },
+        'on-accent': v('on-accent'),
       },
       fontFamily: {
         serif: ['"Cormorant Garamond"', 'Garamond', ...defaultTheme.fontFamily.serif],
@@ -39,9 +48,9 @@ export default {
       typography: () => ({
         DEFAULT: {
           css: {
-            '--tw-prose-body': 'rgb(74 65 57)',
-            '--tw-prose-headings': 'rgb(26 22 19)',
-            '--tw-prose-links': '#c15f3c',
+            '--tw-prose-body': 'rgb(var(--fg-soft))',
+            '--tw-prose-headings': 'rgb(var(--fg))',
+            '--tw-prose-links': 'rgb(var(--accent))',
             maxWidth: 'none',
           },
         },

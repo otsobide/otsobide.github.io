@@ -8,6 +8,7 @@ authors:
   - Román, Rodrigo
 venue: Computer Security, ESORICS 2025, Springer Nature Switzerland (Cham), pp. 423–442
 year: 2025
+type: conference
 abbr: ESORICS 2025
 preview: springer.png
 selected: true

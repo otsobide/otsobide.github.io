@@ -1,0 +1,77 @@
+<!doctype html>
+<!-- Source of public/og.png (1200×630), the preview shown when the site is shared.
+     Rendered by scripts/og-image.mjs; edit here and run `npm run og:image`. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Inter:wght@400;500&family=JetBrains+Mono:wght@400&display=swap">
+  <style>
+    * { margin: 0; box-sizing: border-box; }
+    html, body { width: 1200px; height: 630px; overflow: hidden; }
+    body {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      align-items: center;
+      gap: 72px;
+      padding: 0 88px;
+      background: #f5f0e8;
+      color: #1a1613;
+      font-family: Inter, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 17px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #2f5b87;
+    }
+    h1 {
+      margin-top: 22px;
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 500;
+      font-size: 112px;
+      line-height: 1;
+      letter-spacing: -0.01em;
+    }
+    h1 em { color: #2f5b87; }
+    .rule { width: 72px; height: 2px; margin: 34px 0 30px; background: #6a9bcc; }
+    .line { font-size: 25px; line-height: 1.55; color: #4a4139; }
+    .url {
+      margin-top: 34px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 19px;
+      color: #8a8176;
+    }
+    figure { position: relative; }
+    figure::before {
+      content: '';
+      position: absolute;
+      inset: -10px;
+      border: 1px solid #d8cdba;
+      border-radius: 22px;
+      background: #faf5ec;
+      z-index: -1;
+    }
+    img {
+      display: block;
+      width: 300px;
+      height: 300px;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 1px solid #d8cdba;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <p class="eyebrow">Cybersecurity Researcher · PhD Candidate</p>
+    <h1>Javier <em>Parada</em></h1>
+    <div class="rule"></div>
+    <p class="line">Cyber Threat Intelligence · Adversary Emulation</p>
+    <p class="line">Eurecat · University of Malaga</p>
+    <p class="url">javierparada.phd</p>
+  </div>
+  <figure><img src="../public/img/prof_pic.jpg" alt=""></figure>
+</body>
+</html>
