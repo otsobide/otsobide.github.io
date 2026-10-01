@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { url } from '../lib/url';
+---
+
+<BaseLayout title="Not found">
+  <div class="notfound">
+    <span class="eyebrow">404</span>
+    <h1>Page <strong>not found</strong></h1>
+    <p class="soft">The page you are looking for does not exist or has moved.</p>
+    <a href={url('/')}>← Back home</a>
+  </div>
+</BaseLayout>
+
+<style>
+  .notfound {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding-block: 3rem;
+  }
+</style>

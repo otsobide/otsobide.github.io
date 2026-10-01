@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Scrapes public photos from a Flickr photostream and writes
- * data/gallery.json.
+ * src/data/gallery.json.
  *
  * No Flickr API key is used. The script fetches the paginated
  * photostream HTML pages, extracts each photo's id/secret/server plus
@@ -22,8 +22,8 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const OUTPUT = resolve(__dirname, '..', 'data', 'gallery.json')
-const COUNTRIES = resolve(__dirname, '..', 'data', 'countries.json')
+const OUTPUT = resolve(__dirname, '..', 'src', 'data', 'gallery.json')
+const COUNTRIES = resolve(__dirname, '..', 'src', 'data', 'countries.json')
 
 const USER = process.env.FLICKR_USER || 'tanukifilm'
 const CONCURRENCY = Number(process.env.FLICKR_CONCURRENCY || 8)
@@ -31,7 +31,7 @@ const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 /**
- * Only tags listed in data/countries.json become filter chips on /gallery.
+ * Only tags listed in src/data/countries.json become country sections on /gallery.
  * Add new countries there (tag, display name and ISO flag code) as photos
  * from new places are uploaded to Flickr.
  */

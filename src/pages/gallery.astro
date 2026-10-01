@@ -1,0 +1,445 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+import { getGallery } from '../lib/gallery';
+import Flag from '../components/Flag.astro';
+
+const gallery = getGallery();
+---
+
+<BaseLayout title="Gallery" description="Photographs by Javier Parada, grouped by country.">
+  <div class="stack">
+    <header class="page-header" data-reveal>
+      <span class="eyebrow">Photography</span>
+      <h1>Gallery</h1>
+      <p>
+        Photographs taken along the way, grouped by country. All photos are hosted on{' '}
+        <a href="https://www.flickr.com/photos/tanukifilm/" target="_blank" rel="noopener">Flickr</a>.
+      </p>
+      {
+        gallery.length > 1 && (
+          <nav class="countries" aria-label="Countries">
+            {gallery.map((g) => (
+              <a class="chip" href={`#${g.slug}`}>
+                <Flag code={g.flag} class="flag" />
+                {g.name}
+                <span class="n">{g.photos.length || 'soon'}</span>
+              </a>
+            ))}
+          </nav>
+        )
+      }
+    </header>
+
+    {
+      gallery.map((g) => (
+        <section id={g.slug} class="country">
+          <div class="section-head" data-reveal>
+            <h2>
+              <Flag code={g.flag} class="flag" />
+              {g.name}
+            </h2>
+            <span class="count">
+              {g.photos.length
+                ? `${g.photos.length} ${g.photos.length === 1 ? 'photo' : 'photos'}`
+                : 'Coming soon'}
+            </span>
+          </div>
+          {g.photos.length === 0 && (
+            <div class="placeholder" data-reveal>
+              <ul class="ph-grid" aria-hidden="true">
+                <li />
+                <li />
+                <li />
+              </ul>
+              <p class="ph-text">
+                <Icon name="map" size={16} /> Photos from {g.name} coming soon
+              </p>
+            </div>
+          )}
+          <ul class="photos" data-reveal-stagger="60">
+            {g.photos.map((p, i) => (
+              <li>
+                <button
+                  type="button"
+                  class="thumb"
+                  data-photo
+                  data-country={g.slug}
+                  data-index={i}
+                  data-full={p.full}
+                  data-page={p.page}
+                  data-title={p.title}
+                  data-place={g.name}
+                  style={`aspect-ratio: ${p.width} / ${p.height}`}
+                >
+                  <img
+                    src={p.thumb}
+                    alt={p.title}
+                    width={p.width}
+                    height={p.height}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span class="overlay" aria-hidden="true">
+                    <span class="title">{p.title}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+
+  <dialog id="lightbox" aria-label="Photo viewer">
+    <div class="lb-stage">
+      <img class="lb-img" alt="" />
+      <button type="button" class="lb-nav prev" data-prev aria-label="Previous photo">‹</button>
+      <button type="button" class="lb-nav next" data-next aria-label="Next photo">›</button>
+      <button type="button" class="lb-close" data-close aria-label="Close">
+        <Icon name="close" size={20} />
+      </button>
+    </div>
+    <div class="lb-bar">
+      <div class="lb-text">
+        <p class="lb-title"></p>
+        <p class="lb-place"></p>
+      </div>
+      <span class="lb-count"></span>
+      <a class="pill lb-flickr" href="#" target="_blank" rel="noopener">
+        <Icon name="external-link" size={12} /> View on Flickr
+      </a>
+    </div>
+  </dialog>
+</BaseLayout>
+
+<script>
+  function initGallery() {
+    const dialog = document.querySelector<HTMLDialogElement>('#lightbox');
+    if (!dialog) return;
+    const img = dialog.querySelector<HTMLImageElement>('.lb-img')!;
+    const title = dialog.querySelector<HTMLElement>('.lb-title')!;
+    const place = dialog.querySelector<HTMLElement>('.lb-place')!;
+    const count = dialog.querySelector<HTMLElement>('.lb-count')!;
+    const flickr = dialog.querySelector<HTMLAnchorElement>('.lb-flickr')!;
+    const thumbs = [...document.querySelectorAll<HTMLButtonElement>('[data-photo]')];
+    let group: HTMLButtonElement[] = [];
+    let index = 0;
+
+    const show = (i: number) => {
+      index = (i + group.length) % group.length;
+      const t = group[index];
+      img.classList.remove('loaded');
+      img.onload = () => img.classList.add('loaded');
+      img.src = t.dataset.full!;
+      img.alt = t.dataset.title ?? '';
+      title.textContent = t.dataset.title ?? '';
+      place.textContent = t.dataset.place ?? '';
+      count.textContent = `${index + 1} / ${group.length}`;
+      flickr.href = t.dataset.page!;
+      // Warm up the neighbours.
+      for (const d of [1, -1]) {
+        const n = group[(index + d + group.length) % group.length];
+        if (n) new Image().src = n.dataset.full!;
+      }
+    };
+
+    thumbs.forEach((t) =>
+      t.addEventListener('click', () => {
+        group = thumbs.filter((o) => o.dataset.country === t.dataset.country);
+        show(group.indexOf(t));
+        dialog.showModal();
+      }),
+    );
+    dialog.querySelector('[data-prev]')!.addEventListener('click', () => show(index - 1));
+    dialog.querySelector('[data-next]')!.addEventListener('click', () => show(index + 1));
+    dialog.querySelector('[data-close]')!.addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.close();
+    });
+    dialog.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') show(index + 1);
+      if (e.key === 'ArrowLeft') show(index - 1);
+    });
+
+    // Swipe on touch screens.
+    let x0: number | null = null;
+    dialog.addEventListener('touchstart', (e) => (x0 = e.touches[0].clientX), { passive: true });
+    dialog.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 50) show(index + (dx < 0 ? 1 : -1));
+      x0 = null;
+    });
+  }
+  document.addEventListener('astro:page-load', initGallery);
+</script>
+
+<style>
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+  .page-header a { color: var(--accent-soft); }
+  .countries {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: var(--fg-soft);
+    background-color: var(--bg);
+    transition: border-color 0.25s var(--ease), color 0.25s var(--ease), transform 0.25s var(--ease), background-color 0.25s var(--ease);
+  }
+  .chip:hover {
+    color: var(--accent);
+    border-color: var(--accent-soft);
+    background-color: var(--accent-tint);
+    transform: translateY(-1px);
+  }
+  .chip .n {
+    font-size: 0.72rem;
+    font-weight: 600;
+    opacity: 0.65;
+  }
+  :global(.flag) {
+    width: 1.25rem;
+    height: auto;
+    aspect-ratio: 3 / 2;
+    object-fit: cover;
+    border-radius: 3px;
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08);
+  }
+
+  .country { scroll-margin-top: 5.5rem; }
+  .section-head h2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section-head h2 :global(.flag) { width: 1.4rem; }
+  .count {
+    font-size: 0.8rem;
+    color: var(--fg-mute);
+  }
+
+  /* Masonry-style columns that keep each photo's own aspect ratio. */
+  .photos {
+    list-style: none;
+    columns: 2 12rem;
+    column-gap: 1rem;
+  }
+  @media (min-width: 900px) {
+    .photos { columns: 3; column-gap: 1.1rem; }
+  }
+  .photos > li {
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+  .thumb {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: none;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: var(--bg-soft);
+    cursor: zoom-in;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.45s var(--ease), transform 0.45s var(--ease);
+  }
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s var(--ease), filter 0.5s var(--ease);
+  }
+  .thumb:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
+  }
+  .thumb:hover img { transform: scale(1.05); }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    padding: 0.8rem 0.9rem;
+    background: linear-gradient(180deg, transparent 55%, rgb(0 0 0 / 0.55));
+    opacity: 0;
+    transition: opacity 0.4s var(--ease);
+  }
+  .overlay .title {
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: left;
+    transform: translateY(6px);
+    transition: transform 0.4s var(--ease);
+  }
+  .thumb:hover .overlay,
+  .thumb:focus-visible .overlay { opacity: 1; }
+  .thumb:hover .overlay .title { transform: none; }
+
+  /* ----- placeholder ----- */
+  .placeholder {
+    position: relative;
+  }
+  .ph-grid {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1.4fr 0.8fr 1.2fr;
+    gap: 1rem;
+    height: 10rem;
+  }
+  .ph-grid li {
+    border-radius: 10px;
+    background:
+      linear-gradient(100deg, transparent 20%, color-mix(in srgb, var(--bg) 70%, transparent) 50%, transparent 80%)
+        0 0 / 200% 100% no-repeat,
+      var(--bg-soft);
+    animation: shimmer 2.4s ease-in-out infinite;
+  }
+  .ph-grid li:nth-child(2) { animation-delay: 0.2s; }
+  .ph-grid li:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes shimmer {
+    from { background-position: 150% 0, 0 0; }
+    to { background-position: -50% 0, 0 0; }
+  }
+  .ph-text {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.95rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: var(--fg-soft);
+    background-color: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(6px);
+    box-shadow: var(--shadow-sm);
+    white-space: nowrap;
+    transform: translate(-50%, -50%);
+  }
+  @media (max-width: 560px) {
+    .ph-grid { grid-template-columns: 1.3fr 1fr; height: 8rem; }
+    .ph-grid li:nth-child(3) { display: none; }
+  }
+
+  /* ----- lightbox ----- */
+  dialog {
+    width: min(94vw, 76rem);
+    max-width: none;
+    max-height: 94vh;
+    padding: 0;
+    border: none;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #0b1119;
+    color: #e5ebf2;
+    box-shadow: var(--shadow-lg);
+  }
+  dialog[open] { animation: pop 0.35s var(--ease); }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: none; }
+  }
+  dialog::backdrop {
+    background: rgb(6 12 20 / 0.85);
+    backdrop-filter: blur(6px);
+  }
+  .lb-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 40vh;
+    background: #05090e;
+  }
+  .lb-img {
+    max-width: 100%;
+    max-height: calc(94vh - 4.5rem);
+    object-fit: contain;
+    opacity: 0;
+    transition: opacity 0.35s var(--ease);
+  }
+  .lb-img:global(.loaded) { opacity: 1; }
+  .lb-nav,
+  .lb-close {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 999px;
+    color: #fff;
+    background: rgb(255 255 255 / 0.12);
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+    transition: background-color 0.2s var(--ease), transform 0.2s var(--ease);
+  }
+  .lb-nav {
+    top: 50%;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-top: -1.375rem;
+    font-size: 1.6rem;
+    line-height: 1;
+  }
+  .lb-nav.prev { left: 0.9rem; }
+  .lb-nav.next { right: 0.9rem; }
+  .lb-close {
+    top: 0.8rem;
+    right: 0.8rem;
+    width: 2.4rem;
+    height: 2.4rem;
+  }
+  .lb-nav:hover,
+  .lb-close:hover {
+    background: rgb(255 255 255 / 0.25);
+    transform: scale(1.06);
+  }
+  .lb-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1.1rem;
+  }
+  .lb-text { flex: 1; min-width: 0; }
+  .lb-title {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lb-place {
+    font-size: 0.8rem;
+    color: #8fa0b3;
+  }
+  .lb-count {
+    font-size: 0.8rem;
+    color: #8fa0b3;
+    font-variant-numeric: tabular-nums;
+  }
+  .lb-flickr {
+    color: #e5ebf2;
+    background: transparent;
+    border-color: rgb(255 255 255 / 0.2);
+  }
+  a.lb-flickr:hover {
+    color: #fff;
+    background: rgb(255 255 255 / 0.1);
+    border-color: rgb(255 255 255 / 0.4);
+  }
+</style>

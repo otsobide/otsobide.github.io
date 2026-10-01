@@ -1,0 +1,62 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import PublicationList from '../components/PublicationList.astro';
+import PublicationStats from '../components/PublicationStats.astro';
+import { getPublications, publicationTypes } from '../lib/publications';
+
+const publications = await getPublications();
+const groups = Object.entries(publicationTypes)
+  .map(([type, label]) => ({
+    label,
+    items: publications.filter((p) => p.data.type === type),
+  }))
+  .filter((g) => g.items.length > 0);
+---
+
+<BaseLayout
+  title="Publications"
+  description="Peer-reviewed publications by Javier Parada on cyber threat intelligence and adversary emulation."
+>
+  <div class="stack">
+    <header class="page-header" data-reveal>
+      <span class="eyebrow">Research output</span>
+      <h1>Publications</h1>
+      <p>
+        Peer-reviewed research on cyber threat hunting, adversary emulation and threat
+        intelligence for critical infrastructures, by category and in reverse chronological order.
+      </p>
+    </header>
+
+    <PublicationStats items={publications} />
+
+    {
+      groups.map((g) => (
+        <section>
+          <div class="section-head" data-reveal>
+            <h2>{g.label}</h2>
+            <span class="count">{g.items.length}</span>
+          </div>
+          <PublicationList items={g.items} />
+        </section>
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+  .count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 1.6rem;
+    text-align: center;
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    color: var(--accent);
+    background-color: var(--accent-tint);
+  }
+</style>

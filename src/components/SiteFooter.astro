@@ -1,0 +1,199 @@
+---
+import Icon from './Icon.astro';
+import { nav, site, socials } from '../data/site';
+import { url } from '../lib/url';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container grid">
+    <div class="about">
+      <a href={url('/')} class="brand">
+        {site.firstName} <strong>{site.lastName}</strong>
+      </a>
+      <p class="role">{site.title}. {site.tagline}.</p>
+      <p class="aff serif">
+        Eurecat Technology Centre, Barcelona<br />
+        NICS Lab, University of Málaga
+      </p>
+      <a class="button ghost small" href={url(site.cv)} download>
+        <Icon name="file-down" size={14} /> Download CV
+      </a>
+    </div>
+
+    <nav class="col" aria-label="Footer">
+      <p class="col-title">Explore</p>
+      <ul>
+        {
+          nav.map((item) => (
+            <li>
+              <a href={url(item.href)}>{item.label}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="col">
+      <p class="col-title">Contact</p>
+      <ul>
+        <li>
+          <a href={`mailto:${site.email}`} class="with-icon">
+            <Icon name="mail" size={15} />
+            <span>{site.email}</span>
+          </a>
+        </li>
+        <li class="with-icon muted">
+          <Icon name="map" size={15} />
+          <span>{site.location}</span>
+        </li>
+      </ul>
+      <ul class="socials" aria-label="Profiles">
+        {
+          socials
+            .filter((s) => s.name !== 'email')
+            .map((s) => (
+              <li>
+                <a
+                  href={s.href}
+                  aria-label={s.label}
+                  title={s.label}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Icon name={s.icon} size={17} />
+                </a>
+              </li>
+            ))
+        }
+      </ul>
+    </div>
+  </div>
+
+  <div class="container bottom">
+    <p>© {year} {site.name}</p>
+    <a href="#top" class="to-top" data-to-top>
+      Back to top <span aria-hidden="true">↑</span>
+    </a>
+  </div>
+</footer>
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    document.querySelector('[data-to-top]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+</script>
+
+<style>
+  .site-footer {
+    margin-top: 6rem;
+    border-top: 1px solid var(--border);
+    background-color: var(--bg-tint);
+    font-size: 0.925rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    padding-block: 3rem 2rem;
+  }
+  @media (min-width: 768px) {
+    .grid { grid-template-columns: 1.6fr 0.8fr 1.3fr; gap: 3rem; }
+  }
+  .about {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+  .brand {
+    font-size: 1.3rem;
+    font-weight: 300;
+    color: var(--accent);
+  }
+  .brand strong { font-weight: 600; }
+  .role { color: var(--fg); }
+  .aff {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--fg-mute);
+  }
+  .small {
+    margin-top: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.82rem;
+  }
+  .col-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin-bottom: 0.9rem;
+  }
+  ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .col a {
+    color: var(--fg-soft);
+    transition: color 0.2s var(--ease), padding 0.3s var(--ease);
+  }
+  nav.col a:hover {
+    color: var(--accent);
+    padding-left: 0.3rem;
+  }
+  .with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    word-break: break-all;
+  }
+  .col a.with-icon:hover { color: var(--accent); }
+  .socials {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 1.1rem;
+  }
+  .socials a {
+    display: grid;
+    place-items: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--fg-mute);
+    background-color: var(--bg);
+    transition: color 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.3s var(--ease), background-color 0.2s var(--ease);
+  }
+  .socials a:hover {
+    color: var(--on-accent);
+    background-color: var(--accent);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding-block: 1.25rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--fg-mute);
+  }
+  .to-top { color: var(--fg-mute); }
+  .to-top span {
+    display: inline-block;
+    transition: transform 0.3s var(--ease);
+  }
+  .to-top:hover { color: var(--accent); }
+  .to-top:hover span { transform: translateY(-3px); }
+</style>

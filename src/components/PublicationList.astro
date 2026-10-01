@@ -1,0 +1,339 @@
+---
+import { Image } from 'astro:assets';
+import Icon from './Icon.astro';
+import type { Publication } from '../lib/publications';
+import { authorOrcids, orcidUrl, selfAuthor as self } from '../data/authors';
+
+interface Props {
+  items: Publication[];
+}
+
+const { items } = Astro.props;
+
+/** Where the cover and title should take the reader: DOI first, then open copies, then the venue. */
+const mainLink = (pub: Publication['data']) =>
+  pub.doi ? `https://doi.org/${pub.doi}` : (pub.url ?? pub.pdf ?? pub.venueUrl);
+
+/** Portrait images are journal covers (book look); anything squarer is a logo. */
+const coverKind = (pub: Publication['data']) =>
+  pub.cover && pub.cover.height / pub.cover.width > 1.15 ? 'journal' : 'conference';
+---
+
+<ul class="pubs" data-reveal-stagger="90">
+  {
+    items.map(({ id, data: pub }) => {
+      const href = mainLink(pub);
+      return (
+        <li class="pub" id={id}>
+          <div class="side">
+            {pub.cover ? (
+              <a
+                class:list={['cover', coverKind(pub)]}
+                transition:name={`cover-${id}`}
+                href={href}
+                target="_blank"
+                rel="noopener"
+                aria-label={`Open “${pub.title}”`}
+                title="Open publication"
+              >
+                <Image src={pub.cover} alt={`${pub.abbr ?? pub.venue} cover`} width={320} />
+              </a>
+            ) : (
+              <span class="cover placeholder mono" aria-hidden="true">
+                {pub.abbr ?? pub.year}
+              </span>
+            )}
+          </div>
+          <div class="body">
+            <h3 class="serif">
+              {href ? (
+                <a href={href} target="_blank" rel="noopener">
+                  {pub.title}
+                </a>
+              ) : (
+                pub.title
+              )}
+            </h3>
+            {pub.titleEn && <p class="translation serif">[{pub.titleEn}]</p>}
+            <p class="authors serif">
+              {pub.authors.map((a, i) => (
+                <>
+                  {authorOrcids[a] ? (
+                    <a
+                      class:list={['author', { self: a === self }]}
+                      href={orcidUrl(authorOrcids[a])}
+                      target="_blank"
+                      rel="noopener"
+                      title={`ORCID ${authorOrcids[a]}`}
+                    >
+                      {a}
+                      <Icon name="orcid" size={11} class="orcid" />
+                    </a>
+                  ) : (
+                    <span class:list={{ self: a === self }}>{a}</span>
+                  )}
+                  {i < pub.authors.length - 1 && (i === pub.authors.length - 2 ? ' & ' : ', ')}
+                </>
+              ))}
+            </p>
+            <p class="venue serif">
+              <em>{pub.venue}</em>
+              {pub.details && <span>, {pub.details}</span>}
+              <span>, {pub.year}.</span>
+            </p>
+            <div class="meta">
+              {pub.jcr && (
+                <span class="badge-jcr">
+                  JCR {pub.jcr.quartile} <span>IF {pub.jcr.impactFactor.toFixed(1)}</span>
+                </span>
+              )}
+              {pub.doi && (
+                <a class="pill" href={`https://doi.org/${pub.doi}`} target="_blank" rel="noopener">
+                  <Icon name="external-link" size={12} /> DOI
+                </a>
+              )}
+              {pub.pdf && (
+                <a class="pill" href={pub.pdf} target="_blank" rel="noopener">
+                  <Icon name="file-text" size={12} /> PDF
+                </a>
+              )}
+              {pub.url && (
+                <a class="pill" href={pub.url} target="_blank" rel="noopener">
+                  <Icon name="external-link" size={12} /> {pub.type === 'journal' ? 'Link' : 'Proceedings'}
+                </a>
+              )}
+              {pub.code && (
+                <a class="pill" href={pub.code} target="_blank" rel="noopener">
+                  <Icon name="github" size={12} /> Code
+                </a>
+              )}
+            </div>
+          </div>
+        </li>
+      );
+    })
+  }
+</ul>
+
+<script>
+  // 3D tilt for covers: rotate towards the pointer, move the glare and cast the shadow away.
+  function initCovers() {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.querySelectorAll<HTMLElement>('a.cover').forEach((cover) => {
+      if (cover.dataset.tilt) return;
+      cover.dataset.tilt = '1';
+      cover.addEventListener('pointermove', (e) => {
+        const r = cover.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width;
+        const y = (e.clientY - r.top) / r.height;
+        cover.style.setProperty('--ry', `${(x - 0.5) * 16}deg`);
+        cover.style.setProperty('--rx', `${(0.5 - y) * 16}deg`);
+        cover.style.setProperty('--gx', `${x * 100}%`);
+        cover.style.setProperty('--gy', `${y * 100}%`);
+        cover.style.setProperty('--sx', `${(0.5 - x) * 24}`);
+        cover.style.setProperty('--sy', `${(0.5 - y) * 16}`);
+      });
+      cover.addEventListener('pointerleave', () => {
+        for (const v of ['--rx', '--ry']) cover.style.setProperty(v, '0deg');
+        cover.style.setProperty('--sx', '0');
+        cover.style.setProperty('--sy', '0');
+      });
+    });
+  }
+  document.addEventListener('astro:page-load', initCovers);
+</script>
+
+<style>
+  .pubs {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+  }
+  .pub {
+    scroll-margin-top: 6rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding-block: 1.6rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .pub:first-child { padding-top: 0.5rem; }
+  .pub:last-child { border-bottom: none; }
+  .pub:target .body {
+    animation: flash 2s var(--ease);
+  }
+  @keyframes flash {
+    0%, 30% { background-color: var(--accent-tint); }
+    100% { background-color: transparent; }
+  }
+  @media (min-width: 768px) {
+    .pub { grid-template-columns: 6.5rem 1fr; gap: 2rem; }
+  }
+
+  /* ----- cover ----- */
+  .side { display: none; }
+  @media (min-width: 768px) {
+    .side { display: block; position: relative; }
+  }
+  .cover {
+    --rx: 0deg;
+    --ry: 0deg;
+    --gx: 50%;
+    --gy: 30%;
+    --sx: 0;
+    --sy: 0;
+    position: relative;
+    display: block;
+    width: 6.5rem;
+    aspect-ratio: 3 / 4;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: var(--bg-soft);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transform-origin: right center;
+    transition:
+      transform 0.5s var(--ease),
+      box-shadow 0.5s var(--ease),
+      border-color 0.5s var(--ease);
+    will-change: transform;
+  }
+  .cover :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+  }
+  .cover.conference {
+    aspect-ratio: 1 / 1;
+    background-color: var(--logo-bg);
+    padding: 0.5rem;
+  }
+  .cover.conference :global(img) {
+    object-fit: contain;
+    object-position: center;
+  }
+  /* Book-like spine shading plus a glare that follows the pointer. */
+  a.cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.45), transparent 55%),
+      linear-gradient(90deg, rgb(0 0 0 / 0.22), rgb(255 255 255 / 0.08) 5%, transparent 10%);
+    opacity: 0;
+    transition: opacity 0.4s var(--ease);
+  }
+  a.cover.journal::before {
+    background:
+      radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.45), transparent 55%),
+      linear-gradient(90deg, rgb(0 0 0 / 0.28), rgb(255 255 255 / 0.1) 5%, transparent 10%);
+  }
+  a.cover:hover::before,
+  a.cover:focus-visible::before { opacity: 1; }
+  a.cover::after {
+    z-index: 2;
+    content: '↗';
+    position: absolute;
+    right: 0.35rem;
+    bottom: 0.35rem;
+    display: grid;
+    place-items: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    color: var(--on-accent);
+    background-color: var(--accent);
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.35s var(--ease), transform 0.35s var(--ease);
+  }
+  a.cover:hover,
+  a.cover:focus-visible {
+    z-index: 5;
+    transform: perspective(700px) scale(1.5) rotateX(var(--rx)) rotateY(var(--ry));
+    box-shadow:
+      calc(var(--sx) * 1px) calc(var(--sy) * 1px + 16px) 36px -12px rgb(0 0 0 / 0.4),
+      0 4px 10px -4px rgb(0 0 0 / 0.25);
+    border-color: var(--border-strong);
+    transition:
+      transform 0.2s ease-out,
+      box-shadow 0.2s ease-out,
+      border-color 0.5s var(--ease);
+  }
+  a.cover:hover::after,
+  a.cover:focus-visible::after {
+    opacity: 1;
+    transform: scale(0.7);
+  }
+  .placeholder {
+    display: grid;
+    place-items: center;
+    font-size: 0.75rem;
+    color: var(--accent);
+    text-align: center;
+  }
+
+  /* ----- text ----- */
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    border-radius: 6px;
+  }
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  h3 a {
+    color: var(--fg);
+    background-image: linear-gradient(var(--accent), var(--accent));
+    background-size: 0% 1px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size 0.45s var(--ease), color 0.25s var(--ease);
+  }
+  h3 a:hover {
+    color: var(--accent);
+    background-size: 100% 1px;
+  }
+  .translation {
+    font-size: 0.875rem;
+    color: var(--fg-mute);
+  }
+  .authors {
+    font-size: 0.925rem;
+    color: var(--fg-soft);
+    line-height: 1.6;
+  }
+  .author {
+    color: inherit;
+    white-space: nowrap;
+  }
+  .author:hover { color: var(--accent); }
+  .author :global(.orcid) {
+    display: inline-block;
+    margin-left: 0.2rem;
+    vertical-align: -1px;
+    color: #a6ce39;
+  }
+  .self {
+    color: var(--fg);
+    font-weight: 700;
+  }
+  .venue {
+    font-size: 0.925rem;
+    color: var(--fg-soft);
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    padding-top: 0.35rem;
+  }
+</style>
