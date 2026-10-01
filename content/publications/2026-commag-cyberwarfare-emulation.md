@@ -7,6 +7,7 @@ authors:
   - Lopez, Javier
 venue: IEEE Communications Magazine, IEEE
 year: 2026
+type: journal
 abbr: IEEE ComMag
 preview: ieee_logo.png
 selected: true

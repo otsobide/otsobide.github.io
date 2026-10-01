@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Blog' })
+usePageMeta({ title: 'Blog' })
 
 const { data: posts } = await useAsyncData('blog', () =>
   queryContent('/blog').sort({ date: -1 }).find(),
@@ -18,7 +18,7 @@ const { data: posts } = await useAsyncData('blog', () =>
     <ul v-if="posts && posts.length" class="space-y-8">
       <li v-for="post in posts" :key="post._path">
         <NuxtLink :to="post._path" class="group block">
-          <h2 class="!text-2xl group-hover:text-[rgb(var(--accent))] transition-colors">
+          <h2 class="!text-2xl group-hover:text-accent transition-colors">
             {{ post.title }}
           </h2>
           <p v-if="post.description" class="soft mt-1">{{ post.description }}</p>

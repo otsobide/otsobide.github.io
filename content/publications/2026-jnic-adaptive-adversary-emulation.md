@@ -6,6 +6,7 @@ authors:
   - Lopez, Javier
 venue: Jornadas Nacionales de Investigación en Ciberseguridad (JNIC 2026), May 2026
 year: 2026
+type: national-conference
 abbr: JNIC 2026
 preview: jnic_logo.png
 selected: false

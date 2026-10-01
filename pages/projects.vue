@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({
+usePageMeta({
   title: 'Projects',
   description: 'A growing collection of open-source projects.',
 })
@@ -32,6 +32,7 @@ const categories = computed(() => {
 <template>
   <div class="space-y-14">
     <header class="space-y-3 border-b hairline pb-6">
+      <span class="eyebrow">Code &amp; tools</span>
       <h1>Projects</h1>
       <p class="soft max-w-prose">
         A growing collection of open-source projects, templates, tools and utilities
@@ -57,7 +58,7 @@ const categories = computed(() => {
             :href="p.url"
             target="_blank"
             rel="noopener"
-            class="group block p-6 card-warm"
+            class="group block p-6 card-warm hover:opacity-100"
           >
             <div class="flex items-start justify-between gap-3">
               <h4 class="!text-xl font-serif leading-tight flex items-center gap-2">
@@ -66,7 +67,7 @@ const categories = computed(() => {
               </h4>
               <Icon
                 name="lucide:arrow-up-right"
-                class="w-4 h-4 mt-2 muted group-hover:text-[rgb(var(--accent))] transition-colors"
+                class="w-4 h-4 mt-2 muted group-hover:text-accent transition-colors"
               />
             </div>
             <p class="text-sm soft mt-2 leading-relaxed">{{ p.description }}</p>
@@ -74,7 +75,7 @@ const categories = computed(() => {
               <span
                 v-for="tag in p.stack"
                 :key="tag"
-                class="text-[10px] font-mono uppercase tracking-wider muted px-1.5 py-0.5 border hairline rounded-full"
+                class="tag !rounded-full"
               >
                 {{ tag }}
               </span>

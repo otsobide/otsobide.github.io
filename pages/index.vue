@@ -1,22 +1,35 @@
 <script setup lang="ts">
-useSeoMeta({
-  title: 'About',
-  description:
-    'Cybersecurity researcher, Cyber Threat Hunting, Adversary Emulation and Threat Intelligence for critical infrastructures.',
-})
+import { site } from '~/data/site'
+import { researchInterests } from '~/data/cv'
+import {
+  activityCategories,
+  activityId,
+  formatActivityRange,
+  parseActivityDate,
+  sortActivities,
+  type Activity,
+} from '~/utils/activities'
+import { sortPublications, type Publication } from '~/utils/publications'
 
-const socials = useSocials()
+usePageMeta({ title: 'About' })
 
-const { data: news } = await useAsyncData('home-news', () =>
-  queryContent('/news').sort({ date: -1 }).limit(4).find(),
+const { data: activities } = await useAsyncData('home-activities', () =>
+  queryContent<Activity>('/activities').find(),
+)
+const latest = computed(() =>
+  sortActivities(activities.value ?? [])
+    .slice(0, 4)
+    .map((a) => ({
+      ...a,
+      id: activityId(a),
+      when: formatActivityRange(parseActivityDate(a.date), a.endDate ? parseActivityDate(a.endDate) : undefined),
+    })),
 )
 
 const { data: publications } = await useAsyncData('home-publications', () =>
-  queryContent('/publications')
-    .where({ selected: true })
-    .sort({ year: -1 })
-    .find(),
+  queryContent<Publication>('/publications').where({ selected: true }).find(),
 )
+const selected = computed(() => sortPublications(publications.value ?? []))
 </script>
 
 <template>
@@ -24,9 +37,9 @@ const { data: publications } = await useAsyncData('home-publications', () =>
     <!-- Hero -->
     <section class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-10 md:gap-14 items-center">
       <div class="space-y-5 max-w-prose">
-        <span class="eyebrow">Cybersecurity Researcher · PhD Candidate</span>
+        <span class="eyebrow">{{ site.role }}</span>
         <h1 class="!text-[3.25rem] md:!text-[4.25rem] font-serif !leading-[1.05]">
-          Javier <span class="italic accent-text">Parada</span>
+          {{ site.firstName }} <span class="italic accent-text">{{ site.lastName }}</span>
         </h1>
         <p class="soft text-lg leading-relaxed">
           <a href="https://eurecat.org/home/en/" target="_blank" rel="noopener">Eurecat Technology Centre</a> · Barcelona, Spain.
@@ -46,19 +59,18 @@ const { data: publications } = await useAsyncData('home-publications', () =>
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-4 pt-3">
-          <a
-            v-for="s in socials"
-            :key="s.name"
-            :href="s.href"
-            :aria-label="s.label"
-            :target="s.name === 'email' ? '_self' : '_blank'"
-            rel="noopener noreferrer"
-            class="text-[rgb(var(--fg-mute))] hover:text-[rgb(var(--accent))] transition-colors"
-          >
-            <Icon :name="s.icon" class="w-5 h-5" />
+        <ul class="flex flex-wrap gap-1.5" aria-label="Research interests">
+          <li v-for="interest in researchInterests" :key="interest" class="tag">{{ interest }}</li>
+        </ul>
+
+        <div class="flex flex-wrap items-center gap-3 pt-2">
+          <a :href="site.cv" class="btn" download>
+            <Icon name="lucide:file-down" class="w-4 h-4" /> Download CV
           </a>
+          <NuxtLink to="/publications" class="btn-ghost">Publications</NuxtLink>
         </div>
+
+        <SocialLinks class="pt-1" />
       </div>
 
       <figure class="md:w-64 mx-auto md:mx-0">
@@ -66,7 +78,7 @@ const { data: publications } = await useAsyncData('home-publications', () =>
           <div class="absolute -inset-2 rounded-2xl surface-tint border hairline -z-10" />
           <img
             src="/img/prof_pic.jpg"
-            alt="Javier Parada"
+            :alt="site.name"
             class="w-full aspect-square object-cover rounded-xl border hairline"
           />
         </div>
@@ -78,35 +90,48 @@ const { data: publications } = await useAsyncData('home-publications', () =>
       </figure>
     </section>
 
-    <!-- News -->
-    <section v-if="news && news.length" class="space-y-5">
+    <!-- Activities -->
+    <section v-if="latest.length" class="space-y-5">
       <div class="flex items-baseline justify-between">
-        <h2 class="!text-3xl">News</h2>
-        <NuxtLink to="/news" class="text-sm muted hover:text-[rgb(var(--fg))]">
-          View all →
+        <h2 class="!text-3xl">Activities</h2>
+        <NuxtLink to="/activities" class="text-sm muted hover:text-ink">
+          All activities →
         </NuxtLink>
       </div>
-      <ul class="divide-y hairline border-y hairline">
-        <li v-for="item in news" :key="item._path" class="py-3 grid grid-cols-[6rem_1fr] gap-4 text-sm">
-          <time class="muted font-mono text-xs pt-[3px]">
-            {{ new Date(item.date).toLocaleDateString('en', { year: 'numeric', month: 'short', day: '2-digit' }) }}
-          </time>
-          <div class="soft leading-relaxed">
-            <ContentRenderer :value="item" />
-          </div>
+      <ul class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <li v-for="a in latest" :key="a.id" class="flex">
+          <NuxtLink
+            :to="`/activities#${a.id}`"
+            :data-cat="a.category"
+            class="activity-card card-warm group flex-1 flex flex-col gap-2 p-5 hover:opacity-100"
+          >
+            <span class="flex flex-wrap items-center gap-2 text-xs muted">
+              <span class="cat-label">{{ activityCategories[a.category] }}</span>
+              <time :datetime="String(a.date).slice(0, 10)">{{ a.when }}</time>
+            </span>
+            <span class="font-serif text-xl leading-snug text-ink">{{ a.title }}</span>
+            <span v-if="a.summary" class="text-sm soft leading-relaxed">{{ a.summary }}</span>
+          </NuxtLink>
         </li>
       </ul>
     </section>
 
     <!-- Selected papers -->
-    <section v-if="publications && publications.length" class="space-y-5">
+    <section v-if="selected.length" class="space-y-5">
       <div class="flex items-baseline justify-between">
         <h2 class="!text-3xl">Selected Publications</h2>
-        <NuxtLink to="/publications" class="text-sm muted hover:text-[rgb(var(--fg))]">
+        <NuxtLink to="/publications" class="text-sm muted hover:text-ink">
           View all →
         </NuxtLink>
       </div>
-      <PublicationList :items="publications" />
+      <PublicationList :items="selected" />
     </section>
   </div>
 </template>
+
+<style scoped>
+/* Thin category-coloured rule along the top edge, unaffected by the hover border. */
+.activity-card {
+  box-shadow: inset 0 2px 0 rgb(var(--cat));
+}
+</style>

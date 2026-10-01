@@ -23,15 +23,37 @@ Output written to `.output/public`. Deployed automatically to GitHub Pages on pu
 
 All editable content lives under `content/`:
 
-- `content/publications/`, one markdown file per paper
+- `content/publications/`, one markdown file per paper. `type` (`journal`, `conference` or
+  `national-conference`) picks the section on /publications; optional `doi`, `url`, `pdf`,
+  `venueUrl`, `code` and `jcr: { quartile, impactFactor }` add links and badges.
 - `content/projects/`, one markdown file per project
-- `content/news/`, one markdown file per news item
+- `content/activities/`, one markdown file per activity (talk, conference, award, research stay…):
+  `title`, `summary` (one line for the home page), `date` (`YYYY-MM-DD`, or `YYYY-MM` if the day
+  doesn't matter), optional `endDate` for multi-day events, `category`, `location`, `links`
+  (`[{ label, href }]`) and related `publications` (file names without `.md`). The body is the
+  detailed text. Categories and their labels are in `utils/activities.ts`. `/news` redirects here.
 - `content/blog/`, one markdown file per blog post
 
-The `about` page is `pages/index.vue`; the `cv` timeline is `pages/cv.vue`.
+Data that isn't markdown lives under `data/`:
+
+- `data/site.ts`, name, contact, navigation and social links
+- `data/cv.ts`, the CV timeline, certifications, awards, languages and research interests
+- `data/authors.ts`, ORCID iDs of co-authors, linked from author names
+- `data/countries.json`, which Flickr tags become gallery filters (name and flag)
+
+The `about` page is `pages/index.vue`; the `cv` page is `pages/cv.vue`.
 
 ## Styling
 
-- Colors and typography live in `tailwind.config.ts` and `assets/css/main.css`.
+- Colors live as CSS variables in `assets/css/main.css` (light and dark theme), exposed to
+  Tailwind as `ink-*`, `paper-*`, `line-*` and `accent-*` in `tailwind.config.ts`.
+- Warm cream paper with slate-blue accents; light theme by default, dark theme via the header toggle.
 - Serif: Cormorant Garamond. Sans: Inter. Mono: JetBrains Mono.
-- Light theme only.
+
+## Share image
+
+`public/og.png` is rendered from `scripts/og-image.html` with headless Chrome:
+
+```bash
+npm run og:image
+```
