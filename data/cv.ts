@@ -186,4 +186,5 @@ export const languages = [
   { name: 'Basque', level: 'Native' },
   { name: 'English', level: 'Professional working proficiency' },
   { name: 'Japanese', level: 'JLPT N3' },
+  { name: 'Chinese', level: 'Basic proficiency' },
 ]
