@@ -1,0 +1,33 @@
+---
+// Country flag (4:3) inlined from the flag-icons set in @iconify-json/flag.
+import icons from '@iconify-json/flag/icons.json';
+
+interface Props {
+  /** ISO 3166 alpha-2 code, e.g. "es". */
+  code: string;
+  class?: string;
+}
+
+const { code, class: className } = Astro.props;
+const icon = (icons.icons as Record<string, { body: string; width?: number; height?: number }>)[`${code}-4x3`];
+const width = icon?.width ?? 640;
+const height = icon?.height ?? 480;
+// Prefix internal ids (clip paths, gradients) so different flags on one page don't clash.
+const body = icon?.body
+  .replace(/\bid="([^"]+)"/g, `id="flag-${code}-$1"`)
+  .replace(/url\(#([^)]+)\)/g, `url(#flag-${code}-$1)`)
+  .replace(/href="#([^"]+)"/g, `href="#flag-${code}-$1"`);
+---
+
+{
+  icon && (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="xMidYMid slice"
+      class={className}
+      aria-hidden="true"
+      set:html={body}
+    />
+  )
+}

@@ -1,0 +1,606 @@
+---
+import { render } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+import ActivityCalendar from '../components/ActivityCalendar.astro';
+import {
+  categoryLabels,
+  formatRange,
+  getActivities,
+  monthKey,
+  monthLabel,
+  parseDate,
+  type ActivityEntry,
+} from '../lib/activities';
+import { url } from '../lib/url';
+import { getPublicationLabels } from '../lib/publications';
+
+const activities = await getActivities();
+const pubLabels = await getPublicationLabels();
+
+interface Rendered {
+  entry: ActivityEntry;
+  Content: Awaited<ReturnType<typeof render>>['Content'];
+  start: ReturnType<typeof parseDate>;
+  end?: ReturnType<typeof parseDate>;
+}
+
+const categories = Object.entries(categoryLabels)
+  .map(([key, label]) => ({ key, label, count: activities.filter((a) => a.data.category === key).length }))
+  .filter((c) => c.count > 0);
+
+// year → month → entries, newest first (activities are already sorted).
+const years: { year: number; months: { key: string; label: string; entries: Rendered[] }[] }[] = [];
+for (const entry of activities) {
+  const start = parseDate(entry.data.date);
+  const end = entry.data.endDate ? parseDate(entry.data.endDate) : undefined;
+  const { Content } = await render(entry);
+  let y = years.find((g) => g.year === start.year);
+  if (!y) years.push((y = { year: start.year, months: [] }));
+  const key = monthKey(start);
+  let m = y.months.find((g) => g.key === key);
+  if (!m) y.months.push((m = { key, label: monthLabel(start), entries: [] }));
+  m.entries.push({ entry, Content, start, end });
+}
+---
+
+<BaseLayout title="Activities" description="Talks, awards, conferences and research activity of Javier Parada.">
+  <div class="stack">
+    <header class="page-header" data-reveal>
+      <span class="eyebrow">Month by month</span>
+      <h1>Activities</h1>
+      <p>
+        Talks, awards, conferences, publications, competitions and research stays, month by month.
+        Pick a year, or use the calendar to jump to any entry.
+      </p>
+    </header>
+
+    <div class="layout">
+      <div class="aside-wrap">
+        <div class="sticky">
+          <ActivityCalendar items={activities} />
+        </div>
+      </div>
+
+      <div class="feed" data-activity-feed>
+        <div class="filters" role="group" aria-label="Filter by type">
+          <button type="button" class="chip all" aria-pressed="true" data-filter-all>
+            All <span class="n">{activities.length}</span>
+          </button>
+          {
+            categories.map((c) => (
+              <button type="button" class="chip" aria-pressed="false" data-filter={c.key} data-cat={c.key}>
+                <span class="dot" aria-hidden="true" />
+                {c.label} <span class="n">{c.count}</span>
+              </button>
+            ))
+          }
+        </div>
+        {
+          years.length > 0 && (
+            <div class="tabs" role="tablist" aria-label="Year">
+              {years.map((y, i) => (
+                <button
+                  type="button"
+                  role="tab"
+                  class="tab"
+                  id={`tab-${y.year}`}
+                  aria-controls={`year-${y.year}`}
+                  aria-selected={i === 0 ? 'true' : 'false'}
+                  data-year-tab={y.year}
+                >
+                  {y.year}
+                  <span class="tab-count" data-tab-count>
+                    {y.months.reduce((n, m) => n + m.entries.length, 0)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )
+        }
+        {
+          years.map((y, i) => (
+            <section
+              class="year"
+              id={`year-${y.year}`}
+              role="tabpanel"
+              aria-labelledby={`tab-${y.year}`}
+              data-year={y.year}
+              hidden={i !== 0}
+            >
+              <h2 class="sr-only">{y.year}</h2>
+              <p class="no-results" hidden>No activities of the selected types in {y.year}.</p>
+              {y.months.map((m) => (
+                <div class="month" id={`m-${m.key}`} data-month={m.key}>
+                  <h3 class="month-label" data-reveal>{m.label}</h3>
+                  <ol class="entries" data-reveal-stagger="80">
+                    {m.entries.map(({ entry, Content, start, end }) => (
+                      <li
+                        class="entry"
+                        id={entry.id}
+                        transition:name={`act-${entry.id}`}
+                        data-entry
+                        data-start={entry.data.date}
+                        data-year={start.year}
+                        data-cat={entry.data.category}
+                        data-spotlight
+                        tabindex="-1"
+                      >
+                        <div class="date" aria-hidden="true">
+                          {start.day ? (
+                            <>
+                              <span class="day">{start.day}</span>
+                              <span class="mon">{monthLabel(start).slice(0, 3)}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span class="day small">{monthLabel(start).slice(0, 3)}</span>
+                              <span class="mon">{start.year}</span>
+                            </>
+                          )}
+                        </div>
+                        <article class="body">
+                          <div class="meta">
+                            <span class="cat">
+                              {categoryLabels[entry.data.category]}
+                            </span>
+                            <time datetime={entry.data.date}>{formatRange(start, end)}</time>
+                            {entry.data.location && <span class="loc">· {entry.data.location}</span>}
+                          </div>
+                          <h4>{entry.data.title}</h4>
+                          <div class="content serif">
+                            <Content />
+                          </div>
+                          {(entry.data.links.length > 0 || entry.data.publications.length > 0) && (
+                            <div class="links">
+                              {entry.data.links.map((l) => (
+                                <a class="pill" href={l.href} target="_blank" rel="noopener">
+                                  <Icon name="external-link" size={12} /> {l.label}
+                                </a>
+                              ))}
+                              {entry.data.publications.map((key) => (
+                                <a class="pill" href={`${url('/publications')}#${key}`}>
+                                  <Icon name="file-text" size={12} /> Paper · {pubLabels.get(key) ?? key}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </article>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </section>
+          ))
+        }
+        {activities.length === 0 && <p class="muted italic">No activities yet.</p>}
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  /* Feed side of the Activities page: year tabs, focusing cards picked in the calendar,
+     and reporting hovered cards back to the calendar (see ActivityCalendar.astro). */
+  const emit = (name: string, detail: unknown) => document.dispatchEvent(new CustomEvent(name, { detail }));
+  let abort: AbortController | undefined;
+
+  function initFeed() {
+    abort?.abort();
+    const feed = document.querySelector<HTMLElement>('[data-activity-feed]');
+    if (!feed) return;
+    abort = new AbortController();
+    const { signal } = abort;
+
+    const tabs = [...feed.querySelectorAll<HTMLButtonElement>('[data-year-tab]')];
+    const panels = [...feed.querySelectorAll<HTMLElement>('section[data-year]')];
+    const cards = [...feed.querySelectorAll<HTMLElement>('[data-entry]')];
+    let activeYear = Number(tabs[0]?.dataset.yearTab);
+    const filterAll = feed.querySelector<HTMLButtonElement>('[data-filter-all]')!;
+    const filterChips = [...feed.querySelectorAll<HTMLButtonElement>('[data-filter]')];
+    const selected = new Set<string>();
+
+    function applyFilter() {
+      const matches = (c: HTMLElement) => selected.size === 0 || selected.has(c.dataset.cat!);
+      for (const c of cards) c.hidden = !matches(c);
+      feed!.querySelectorAll<HTMLElement>('.month[data-month]').forEach((m) => {
+        m.hidden = !m.querySelector('[data-entry]:not([hidden])');
+      });
+      for (const p of panels) {
+        const count = p.querySelectorAll('[data-entry]:not([hidden])').length;
+        p.querySelector<HTMLElement>('.no-results')!.hidden = count > 0;
+        const tab = tabs.find((t) => t.dataset.yearTab === p.dataset.year);
+        const badge = tab?.querySelector<HTMLElement>('[data-tab-count]');
+        if (badge) badge.textContent = String(count);
+        tab?.classList.toggle('empty', count === 0);
+      }
+      filterAll.setAttribute('aria-pressed', String(selected.size === 0));
+      for (const chip of filterChips) chip.setAttribute('aria-pressed', String(selected.has(chip.dataset.filter!)));
+      clearFocus();
+      emit('activities:filter', { categories: [...selected] });
+    }
+
+    filterAll.addEventListener('click', () => { selected.clear(); applyFilter(); }, { signal });
+    for (const chip of filterChips) {
+      chip.addEventListener('click', () => {
+        const key = chip.dataset.filter!;
+        if (selected.has(key)) selected.delete(key);
+        else selected.add(key);
+        applyFilter();
+      }, { signal });
+    }
+
+    function showYear(year: number, { announce = true } = {}) {
+      if (year === activeYear && !panels.some((p) => p.hidden && Number(p.dataset.year) === year)) return;
+      activeYear = year;
+      for (const t of tabs) t.setAttribute('aria-selected', String(Number(t.dataset.yearTab) === year));
+      for (const p of panels) p.hidden = Number(p.dataset.year) !== year;
+      clearFocus();
+      if (announce) emit('activities:show-year', { year });
+    }
+
+    function clearFocus() {
+      feed!.classList.remove('has-focus');
+      for (const c of cards) c.classList.remove('focused');
+      emit('activities:focused', { ids: [] });
+    }
+
+    function focusCards(ids: string[]) {
+      const targets = ids
+        .map((id) => document.getElementById(id))
+        .filter((el): el is HTMLElement => !!el && !el.hidden);
+      if (!targets.length) return;
+      showYear(Number(targets[0].dataset.year));
+      for (const c of cards) c.classList.remove('focused');
+      // Restart the pulse animation even if the same card is picked twice.
+      void feed!.offsetWidth;
+      for (const t of targets) t.classList.add('focused');
+      feed!.classList.add('has-focus');
+      targets[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      targets[0].focus({ preventScroll: true });
+      history.replaceState(null, '', `#${targets[0].id}`);
+      emit('activities:focused', { ids, start: targets[0].dataset.start });
+    }
+
+    tabs.forEach((t) =>
+      t.addEventListener('click', () => {
+        showYear(Number(t.dataset.yearTab));
+        feed.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, { signal }),
+    );
+
+    cards.forEach((c) => {
+      c.addEventListener('mouseenter', () => emit('activities:highlight', { id: c.id, start: c.dataset.start }), { signal });
+      c.addEventListener('mouseleave', () => emit('activities:highlight', { id: null }), { signal });
+    });
+
+    document.addEventListener('activities:select', (ev) => focusCards((ev as CustomEvent<{ ids: string[] }>).detail.ids), { signal });
+    document.addEventListener('activities:year', (ev) => showYear((ev as CustomEvent<{ year: number }>).detail.year, { announce: false }), { signal });
+    document.addEventListener(
+      'activities:goto-month',
+      (ev) => {
+        const { year, month } = (ev as CustomEvent<{ year: number; month: number }>).detail;
+        showYear(year, { announce: false });
+        document
+          .getElementById(`m-${year}-${String(month).padStart(2, '0')}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      },
+      { signal },
+    );
+
+    // Clicking outside the focused cards (and outside the calendar) or pressing Esc clears the focus.
+    document.addEventListener(
+      'click',
+      (ev) => {
+        const target = ev.target as HTMLElement;
+        if (!feed.classList.contains('has-focus')) return;
+        if (target.closest('.entry.focused') || target.closest('[data-activity-calendar]')) return;
+        clearFocus();
+      },
+      { signal },
+    );
+    document.addEventListener('keydown', (ev) => ev.key === 'Escape' && clearFocus(), { signal });
+
+    // Deep links (e.g. from the home page): open the right year and point at the card.
+    const hash = decodeURIComponent(location.hash.slice(1));
+    if (hash && document.getElementById(hash)?.matches('[data-entry]')) {
+      requestAnimationFrame(() => focusCards([hash]));
+    }
+  }
+
+  document.addEventListener('astro:page-load', initFeed);
+  document.addEventListener('astro:before-swap', () => abort?.abort());
+</script>
+
+<style>
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  @media (min-width: 900px) {
+    .layout {
+      grid-template-columns: 17rem 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    .sticky {
+      position: sticky;
+      top: 5.5rem;
+    }
+  }
+
+  .feed {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--border-strong);
+    margin-bottom: -1rem;
+  }
+  .tab {
+    position: relative;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    padding: 0.35rem 0.9rem 0.6rem;
+    border: none;
+    background: none;
+    font: inherit;
+    font-size: 1.9rem;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--fg-mute);
+    cursor: pointer;
+    transition: color 0.25s var(--ease);
+  }
+  .tab::after {
+    content: '';
+    position: absolute;
+    left: 0.6rem;
+    right: 0.6rem;
+    bottom: -1px;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background-color: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.35s var(--ease);
+  }
+  .tab:hover { color: var(--accent-soft); }
+  .tab:global(.empty) { opacity: 0.45; }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background-color: var(--bg);
+    font: inherit;
+    font-size: 0.85rem;
+    color: var(--fg-soft);
+    cursor: pointer;
+    transition:
+      background-color 0.25s var(--ease),
+      border-color 0.25s var(--ease),
+      color 0.25s var(--ease),
+      transform 0.25s var(--ease);
+  }
+  .chip:hover {
+    border-color: var(--cat);
+    color: var(--cat-fg);
+    transform: translateY(-1px);
+  }
+  .chip[aria-pressed='true'] {
+    color: var(--cat-fg);
+    border-color: var(--cat);
+    background-color: var(--cat-bg);
+    font-weight: 600;
+  }
+  .chip.all {
+    --cat: var(--accent);
+    --cat-bg: var(--accent-tint);
+    --cat-fg: var(--accent);
+  }
+  .chip.all[aria-pressed='true'] {
+    color: var(--on-accent);
+    background-color: var(--accent);
+    border-color: var(--accent);
+  }
+  .dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 999px;
+    background-color: var(--cat);
+  }
+  .n {
+    font-size: 0.72rem;
+    font-weight: 600;
+    opacity: 0.7;
+  }
+  .no-results {
+    margin-top: 2rem;
+    font-style: italic;
+    color: var(--fg-mute);
+  }
+  .month[hidden],
+  .entry[hidden],
+  .no-results[hidden] { display: none; }
+  .tab[aria-selected='true'] { color: var(--accent); }
+  .tab[aria-selected='true']::after { transform: scaleX(1); }
+  .tab-count {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    color: var(--accent);
+    background-color: var(--accent-tint);
+  }
+  .year[hidden] { display: none; }
+  .year:not([hidden]) {
+    animation: fade-in 0.45s var(--ease);
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  .month {
+    scroll-margin-top: 6rem;
+    margin-top: 1.75rem;
+  }
+  .month-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent-soft);
+    margin-bottom: 0.9rem;
+  }
+  .entries {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .entry {
+    scroll-margin-top: 6rem;
+    display: grid;
+    grid-template-columns: 3.5rem 1fr;
+    gap: 1rem;
+    padding: 1.1rem;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--cat);
+    border-radius: 12px;
+    background-color: var(--bg);
+    background-image: linear-gradient(90deg, var(--cat-bg), transparent 9rem);
+    transition:
+      border-color 0.4s var(--ease),
+      box-shadow 0.4s var(--ease),
+      transform 0.4s var(--ease),
+      opacity 0.4s var(--ease),
+      background-color 0.4s var(--ease);
+  }
+  .entry:hover {
+    border-color: var(--border-strong);
+    border-left-color: var(--cat);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+  .entry {
+    outline: none;
+  }
+  /* A card picked from the calendar stays highlighted; the rest fade back. */
+  .feed:global(.has-focus) .entry:not(:global(.focused)) {
+    opacity: 0.45;
+  }
+  .feed:global(.has-focus) .entry:not(:global(.focused)):hover {
+    opacity: 0.85;
+  }
+  .entry:global(.focused) {
+    border-color: var(--cat);
+    background-color: var(--bg-tint);
+    box-shadow: 0 0 0 4px var(--cat-bg), var(--shadow-md);
+    animation: pulse 1.6s var(--ease);
+  }
+  .entry:global(.focused) .date {
+    color: #fff;
+    background-color: var(--cat);
+    box-shadow: none;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cat) 45%, transparent), var(--shadow-md); transform: scale(1.01); }
+    60% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--cat) 0%, transparent), var(--shadow-md); transform: none; }
+    100% { box-shadow: 0 0 0 4px var(--cat-bg), var(--shadow-md); }
+  }
+  .date {
+    transition: background-color 0.35s var(--ease);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 3.5rem;
+    border-radius: 10px;
+    background-color: var(--bg);
+    color: var(--cat-fg);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cat) 30%, transparent);
+    line-height: 1;
+  }
+  .day {
+    font-size: 1.35rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .day.small {
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .mon {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 0.2rem;
+  }
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--fg-mute);
+  }
+  .cat {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+    color: var(--cat-fg);
+    background-color: var(--cat-bg);
+  }
+  h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--fg);
+  }
+  .content {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--fg-soft);
+  }
+  .content :global(p + p) { margin-top: 0.6rem; }
+  .content :global(strong) { color: var(--fg); }
+  .content :global(img) { border-radius: 8px; margin-top: 0.5rem; }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    padding-top: 0.3rem;
+  }
+</style>

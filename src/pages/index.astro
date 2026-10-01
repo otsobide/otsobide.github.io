@@ -1,0 +1,408 @@
+---
+import { Image } from 'astro:assets';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+import PublicationList from '../components/PublicationList.astro';
+import { site, socials } from '../data/site';
+import { researchInterests } from '../data/cv';
+import { categoryLabels, formatRange, getActivities, parseDate } from '../lib/activities';
+import { getPublications } from '../lib/publications';
+import { url } from '../lib/url';
+import profile from '../assets/profile.jpg';
+
+const publications = await getPublications();
+const activities = (await getActivities()).slice(0, 4);
+const selected = publications.filter((p) => p.data.selected);
+
+---
+
+<BaseLayout title="About">
+  <div class="stack">
+    <section class="hero">
+      <div class="intro" data-reveal-stagger="90">
+        <span class="eyebrow">Cybersecurity Researcher · PhD Candidate</span>
+        <h1>{site.firstName} <strong>{site.lastName}</strong></h1>
+        <p class="role">{site.title}. {site.tagline}</p>
+        <p class="affiliation">
+          <a href="https://eurecat.org/home/en/" target="_blank" rel="noopener">Eurecat Technology Centre</a>,
+          Barcelona.{' '}
+          <a href="https://www.nics.uma.es/" target="_blank" rel="noopener">NICS Lab</a>,{' '}
+          <a href="https://www.uma.es/" target="_blank" rel="noopener">University of Málaga</a>
+        </p>
+
+        <div class="bio serif">
+          <p>
+            My field is <strong>Cyber Threat Intelligence</strong> (CTI): the discipline of collecting,
+            analyzing and correlating data about adversaries, their tools and campaigns to turn raw
+            signals into actionable knowledge that anticipates and counters threats.
+          </p>
+          <p>
+            Within CTI, I focus on <strong>adversary emulation</strong> and the imitation of{' '}
+            <strong>APTs</strong> to reproduce real attacker behaviour and stress-test defenses, on{' '}
+            <strong>attack attribution</strong>, and on <strong>CTI sharing systems</strong> that
+            enable organizations to exchange intelligence at scale.
+          </p>
+        </div>
+
+        <ul class="interests">
+          {researchInterests.map((i) => <li class="tag">{i}</li>)}
+        </ul>
+
+        <div class="actions">
+          <a class="button" href={url(site.cv)} download>
+            <Icon name="file-down" size={16} /> Download CV
+          </a>
+          <a class="button ghost" href={url('/publications')}>Publications</a>
+        </div>
+        <ul class="socials" aria-label="Profiles and contact">
+          {
+            socials.map((s) => (
+              <li>
+                <a
+                  href={s.href}
+                  aria-label={s.label}
+                  data-label={s.label}
+                  target={s.name === 'email' ? undefined : '_blank'}
+                  rel="noopener noreferrer"
+                >
+                  <Icon name={s.icon} size={18} />
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <figure class="portrait" data-reveal style="--reveal-delay: 200ms">
+        <div class="frame">
+          <Image
+            src={profile}
+            alt={`Portrait of ${site.name}`}
+            width={560}
+            height={560}
+            loading="eager"
+          />
+        </div>
+        <figcaption>
+          <span>Ada Byron Research Institute</span>
+          <span>NICS Lab Research Group</span>
+          <span>Málaga, Spain</span>
+        </figcaption>
+      </figure>
+    </section>
+
+    <section>
+      <div class="section-head" data-reveal>
+        <h2>Activities</h2>
+        <a href={url('/activities')}>All activities →</a>
+      </div>
+      <ul class="activities" data-reveal-stagger="80">
+        {
+          activities.map((n) => (
+            <li>
+              <a
+                class="act"
+                data-cat={n.data.category}
+                data-spotlight
+                href={`${url('/activities')}#${n.id}`}
+                transition:name={`act-${n.id}`}
+              >
+                <span class="act-meta">
+                  <span class="act-cat">{categoryLabels[n.data.category]}</span>
+                  <time datetime={n.data.date}>
+                    {formatRange(
+                      parseDate(n.data.date),
+                      n.data.endDate ? parseDate(n.data.endDate) : undefined,
+                    )}
+                  </time>
+                </span>
+                <span class="act-title">{n.data.title}</span>
+                <span class="act-summary serif">{n.data.summary}</span>
+                <span class="act-go" aria-hidden="true">
+                  <Icon name="arrow" size={16} />
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    {
+      selected.length > 0 && (
+        <section>
+          <div class="section-head" data-reveal>
+            <h2>Selected Publications</h2>
+            <a href={url('/publications')}>View all →</a>
+          </div>
+          <PublicationList items={selected} />
+        </section>
+      )
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4.5rem;
+  }
+
+  /* ----- hero ----- */
+  .hero {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    align-items: center;
+  }
+  /* Full-bleed animated backdrop: drifting navy glows over a faint dot grid. */
+  .hero::before,
+  .hero::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: -5rem calc(50% - 50vw) -3rem;
+    pointer-events: none;
+  }
+  .hero::before {
+    background:
+      radial-gradient(38rem 26rem at 78% 30%, color-mix(in srgb, var(--accent-soft) 26%, transparent), transparent 70%),
+      radial-gradient(30rem 22rem at 12% 10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
+      radial-gradient(26rem 20rem at 45% 95%, color-mix(in srgb, #2a8a96 12%, transparent), transparent 70%);
+    background-size: 140% 140%;
+    animation: drift 22s ease-in-out infinite alternate;
+    filter: blur(6px);
+  }
+  .hero::after {
+    background-image: radial-gradient(color-mix(in srgb, var(--accent) 22%, transparent) 1px, transparent 1.2px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(ellipse 70% 65% at 60% 40%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 70% 65% at 60% 40%, #000 30%, transparent 75%);
+    opacity: 0.55;
+  }
+  @keyframes drift {
+    0% { background-position: 0% 0%, 100% 0%, 50% 100%; }
+    50% { background-position: 30% 20%, 70% 30%, 30% 70%; }
+    100% { background-position: 10% 40%, 90% 10%, 70% 80%; }
+  }
+  @media (min-width: 820px) {
+    .hero {
+      grid-template-columns: 1fr 15.5rem;
+      gap: 3.5rem;
+    }
+  }
+  .intro {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    max-width: var(--prose-width);
+  }
+  h1 {
+    font-size: 2.9rem;
+  }
+  @media (min-width: 768px) {
+    h1 { font-size: 3.6rem; }
+  }
+  .role {
+    font-size: 1.2rem;
+    color: var(--fg);
+  }
+  .affiliation {
+    font-size: 0.95rem;
+    color: var(--fg-mute);
+  }
+  .affiliation a { color: var(--fg-soft); border-bottom: 1px solid var(--border-strong); }
+  .affiliation a:hover { color: var(--accent); border-color: var(--accent); }
+  .bio {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--fg-soft);
+    padding-top: 0.6rem;
+    margin-top: 0.4rem;
+    border-top: 1px solid var(--border);
+  }
+  .bio strong { color: var(--fg); font-weight: 700; }
+  .interests {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding-top: 0.6rem;
+  }
+
+  /* Social links: round buttons with a label that slides in on hover. */
+  .socials {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .socials a {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--fg-soft);
+    background-color: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: blur(4px);
+    transition:
+      color 0.25s var(--ease),
+      border-color 0.25s var(--ease),
+      background-color 0.25s var(--ease),
+      transform 0.35s var(--ease),
+      box-shadow 0.35s var(--ease);
+  }
+  .socials a:hover,
+  .socials a:focus-visible {
+    color: var(--on-accent);
+    background-color: var(--accent);
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+  .socials a::after {
+    content: attr(data-label);
+    position: absolute;
+    bottom: calc(100% + 0.55rem);
+    left: 50%;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--on-accent);
+    background-color: var(--accent);
+    box-shadow: var(--shadow-md);
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.95);
+    pointer-events: none;
+    transition: opacity 0.25s var(--ease), transform 0.3s var(--ease);
+  }
+  .socials a:hover::after,
+  .socials a:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+
+  .portrait {
+    margin: 0 auto;
+    width: 15.5rem;
+  }
+  @media (min-width: 820px) {
+    .portrait { margin: 0; }
+  }
+  .frame {
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+  .frame :global(img) {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    transition: transform 0.8s var(--ease);
+  }
+  .frame:hover :global(img) { transform: scale(1.04); }
+  figcaption {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    color: var(--fg-mute);
+  }
+
+  /* ----- activities ----- */
+  .activities {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  @media (min-width: 700px) {
+    .activities { grid-template-columns: 1fr 1fr; }
+  }
+  .activities > li { display: flex; }
+  .act {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.1rem 1.2rem 1.2rem;
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--cat);
+    border-radius: 12px;
+    background-color: var(--bg);
+    background-image: linear-gradient(180deg, var(--cat-bg), transparent 5rem);
+    color: inherit;
+    transition:
+      transform 0.45s var(--ease),
+      box-shadow 0.45s var(--ease),
+      border-color 0.45s var(--ease);
+  }
+  .act:hover {
+    color: inherit;
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: color-mix(in srgb, var(--cat) 45%, var(--border));
+    border-top-color: var(--cat);
+  }
+  .act-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    color: var(--fg-mute);
+  }
+  .act-cat {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.1rem 0.45rem;
+    border-radius: 3px;
+    color: var(--cat-fg);
+    background-color: var(--cat-bg);
+  }
+  .act-title {
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--fg);
+    padding-right: 1.5rem;
+  }
+  .act-summary {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--fg-soft);
+  }
+  .act-go {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: var(--cat);
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 0.3s var(--ease), transform 0.35s var(--ease);
+  }
+  .act:hover .act-go {
+    opacity: 1;
+    transform: none;
+  }
+</style>

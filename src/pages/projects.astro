@@ -1,0 +1,157 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+
+type Project = CollectionEntry<'projects'>;
+
+const sections: { key: Project['data']['category']; label: string }[] = [
+  { key: 'working', label: "Projects I'm working on" },
+  { key: 'maintaining', label: 'Projects I still maintain' },
+  { key: 'legacy', label: 'Legacy projects' },
+  { key: 'other', label: 'Other' },
+];
+
+const projects = (await getCollection('projects')).sort(
+  (a, b) => b.data.importance - a.data.importance || a.data.title.localeCompare(b.data.title),
+);
+const groups = sections
+  .map((s) => ({ ...s, items: projects.filter((p) => p.data.category === s.key) }))
+  .filter((g) => g.items.length > 0);
+
+const isGithub = (href: string) => href.startsWith('https://github.com/');
+---
+
+<BaseLayout
+  title="Projects"
+  description="Open-source projects by Javier Parada: templates, tools and utilities."
+>
+  <div class="stack">
+    <header class="page-header" data-reveal>
+      <span class="eyebrow">Code &amp; tools</span>
+      <h1>Projects</h1>
+      <p>
+        A growing collection of open-source projects, templates, tools and utilities I've built
+        over the years. Small utilities and side experiments for now; major software projects
+        coming soon.
+      </p>
+    </header>
+
+    {
+      groups.map((g) => (
+        <section>
+          <div class="section-head" data-reveal>
+            <h2>{g.label}</h2>
+            <span class="count">{g.items.length}</span>
+          </div>
+          <ul class="grid" data-reveal-stagger="70">
+            {g.items.map((p) => (
+              <li class="card" data-spotlight>
+                <h3>
+                  <a href={p.data.url} target="_blank" rel="noopener">
+                    {p.data.emoji && <span class="emoji" aria-hidden="true">{p.data.emoji}</span>}
+                    {p.data.title}
+                  </a>
+                </h3>
+                <p class="summary">{p.data.description}</p>
+                {p.data.stack.length > 0 && (
+                  <ul class="tags">
+                    {p.data.stack.map((t) => (
+                      <li class="tag">{t}</li>
+                    ))}
+                  </ul>
+                )}
+                <div class="links">
+                  <a class="pill" href={p.data.url} target="_blank" rel="noopener">
+                    <Icon name={isGithub(p.data.url) ? 'github' : 'external-link'} size={12} />
+                    {isGithub(p.data.url) ? 'Code' : 'Open'}
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </div>
+</BaseLayout>
+
+<style>
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+  }
+  .count {
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 1.6rem;
+    text-align: center;
+    padding: 0.05rem 0.5rem;
+    border-radius: 999px;
+    color: var(--accent);
+    background-color: var(--accent-tint);
+  }
+  .grid {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  @media (min-width: 640px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media (min-width: 960px) {
+    .grid { grid-template-columns: 1fr 1fr 1fr; }
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 1.35rem;
+    background-color: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    transition:
+      transform 0.45s var(--ease),
+      border-color 0.45s var(--ease),
+      box-shadow 0.45s var(--ease);
+  }
+  .card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+  }
+  h3 {
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+  h3 a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--accent);
+  }
+  h3 a:hover { color: var(--accent-strong); }
+  .emoji { font-size: 1.1rem; }
+  .summary {
+    font-family: var(--font-serif);
+    font-size: 0.925rem;
+    line-height: 1.6;
+    color: var(--fg-soft);
+  }
+  .tags {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 0.35rem;
+  }
+</style>

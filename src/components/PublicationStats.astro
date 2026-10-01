@@ -1,0 +1,265 @@
+---
+import { publicationTypes, type Publication } from '../lib/publications';
+
+interface Props {
+  items: Publication[];
+}
+
+const pubs = Astro.props.items.map((p) => p.data);
+const journals = pubs.filter((p) => p.type === 'journal');
+const types = (Object.keys(publicationTypes) as (keyof typeof publicationTypes)[])
+  .map((type) => ({ type, label: publicationTypes[type].toLowerCase(), n: pubs.filter((p) => p.type === type).length }))
+  .filter((t) => t.n > 0);
+
+const years = [...new Set(pubs.map((p) => p.year))].sort((a, b) => a - b);
+const byYear = years.map((y) => ({
+  label: String(y),
+  parts: types.map((t) => ({ type: t.type, n: pubs.filter((p) => p.year === y && p.type === t.type).length })),
+  total: pubs.filter((p) => p.year === y).length,
+}));
+const maxYear = Math.max(...byYear.map((y) => y.total), 1);
+
+// The JCR panels only appear once some journal has `jcr` in its frontmatter.
+const quartiles = ['Q1', 'Q2', 'Q3', 'Q4']
+  .map((q) => ({ q, n: journals.filter((p) => p.jcr?.quartile === q).length }))
+  .filter((q) => q.n > 0);
+const ranked = journals.filter((p) => p.jcr).length;
+
+const ifs = journals
+  .filter((p) => p.jcr)
+  .map((p) => ({ label: p.abbr ?? p.venue, value: p.jcr!.impactFactor, q: p.jcr!.quartile }))
+  .sort((a, b) => b.value - a.value);
+const maxIf = Math.max(...ifs.map((i) => i.value), 1);
+---
+
+
+<section class:list={['stats', { 'with-jcr': ranked > 0 }]} aria-label="Publications at a glance" data-reveal>
+  <div class="panel total">
+    <span class="big">{pubs.length}</span>
+    <span class="caption">peer-reviewed publications</span>
+    <span class="split">
+      {
+        types.map((t) => (
+          <span>
+            <i class:list={['sw', t.type]} />
+            {t.n} {t.n === 1 ? t.label.replace(/s$/, '') : t.label}
+          </span>
+        ))
+      }
+    </span>
+  </div>
+
+  <div class="panel">
+    <p class="title">By year</p>
+    <ul class="bars">
+      {
+        byYear.map((y, i) => (
+          <li style={`--i: ${i}`}>
+            <span class="label">{y.label}</span>
+            <span class="track">
+              {y.parts.map((part) => (
+                <span class:list={['fill', part.type]} style={`--w: ${(part.n / maxYear) * 100}%`} />
+              ))}
+            </span>
+            <span class="value">{y.total}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  {ranked > 0 && (
+  <div class="panel">
+    <p class="title">JCR quartile</p>
+    <div class="stack-bar" role="img" aria-label={quartiles.map((q) => `${q.n} in ${q.q}`).join(', ')}>
+      {
+        quartiles.map((q, i) => (
+          <span
+            class:list={['seg', q.q.toLowerCase()]}
+            style={`--w: ${(q.n / ranked) * 100}%; --i: ${i}`}
+          />
+        ))
+      }
+    </div>
+    <ul class="legend">
+      {
+        quartiles.map((q) => (
+          <li>
+            <i class:list={['sw', q.q.toLowerCase()]} />
+            {q.q} <strong>{q.n}</strong>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  )}
+
+  {ifs.length > 0 && (
+  <div class="panel">
+    <p class="title">Impact factor</p>
+    <ul class="bars">
+      {
+        ifs.map((j, i) => (
+          <li style={`--i: ${i}`}>
+            <span class="label">{j.label}</span>
+            <span class="track">
+              <span class:list={['fill', j.q.toLowerCase()]} style={`--w: ${(j.value / maxIf) * 100}%`} />
+            </span>
+            <span class="value">{j.value.toFixed(1)}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+  )}
+</section>
+
+<style>
+  .stats {
+    --c-journal: var(--accent);
+    --c-conference: #5046a8;
+    --c-national-conference: #2a8a96;
+    --c-q1: #2f855a;
+    --c-q2: #2a8a96;
+    --c-q3: #c08a1e;
+    --c-q4: #c5563a;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    background-color: var(--border);
+  }
+  @media (min-width: 720px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+  @media (min-width: 960px) {
+    .stats { grid-template-columns: 0.9fr 1.4fr; }
+    .stats.with-jcr { grid-template-columns: 0.9fr 1fr 1fr 1.1fr; }
+  }
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.25rem 1.35rem;
+    background-color: var(--bg-tint);
+  }
+  .title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+  }
+  .total { justify-content: center; gap: 0.35rem; }
+  .big {
+    font-size: 3rem;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .caption { color: var(--fg-soft); }
+  .split {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--fg-mute);
+  }
+  .sw {
+    display: inline-block;
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 3px;
+    margin-right: 0.4rem;
+    vertical-align: 0;
+  }
+  .sw.journal { background-color: var(--c-journal); }
+  .sw.conference { background-color: var(--c-conference); }
+  .sw.national-conference { background-color: var(--c-national-conference); }
+  .sw.q1 { background-color: var(--c-q1); }
+  .sw.q2 { background-color: var(--c-q2); }
+  .sw.q3 { background-color: var(--c-q3); }
+  .sw.q4 { background-color: var(--c-q4); }
+
+  .bars {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  .bars li {
+    display: grid;
+    grid-template-columns: 2.6rem 1fr 2rem;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+  }
+  .label {
+    color: var(--fg-soft);
+    font-weight: 600;
+  }
+  .value {
+    text-align: right;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .track {
+    display: flex;
+    height: 0.6rem;
+    border-radius: 999px;
+    overflow: hidden;
+    background-color: var(--bg-soft);
+  }
+  .fill {
+    height: 100%;
+    width: var(--w);
+    transition: width 1.1s var(--ease);
+    transition-delay: calc(var(--i, 0) * 110ms + 150ms);
+  }
+  .fill.journal { background-color: var(--c-journal); }
+  .fill.conference { background-color: var(--c-conference); }
+  .fill.national-conference { background-color: var(--c-national-conference); }
+  .fill.q1 { background-color: var(--c-q1); }
+  .fill.q2 { background-color: var(--c-q2); }
+  .fill.q3 { background-color: var(--c-q3); }
+  .fill.q4 { background-color: var(--c-q4); }
+  .bars li .fill { transition-delay: calc(var(--i) * 110ms + 150ms); }
+
+  .stack-bar {
+    display: flex;
+    height: 0.9rem;
+    border-radius: 999px;
+    overflow: hidden;
+    background-color: var(--bg-soft);
+    margin-top: 0.4rem;
+  }
+  .seg {
+    width: var(--w);
+    transition: width 1.1s var(--ease);
+    transition-delay: calc(var(--i) * 150ms + 150ms);
+  }
+  .seg.q1 { background-color: var(--c-q1); }
+  .seg.q2 { background-color: var(--c-q2); }
+  .seg.q3 { background-color: var(--c-q3); }
+  .seg.q4 { background-color: var(--c-q4); }
+  .legend {
+    list-style: none;
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    color: var(--fg-soft);
+  }
+  .legend strong { color: var(--fg); margin-left: 0.2rem; }
+
+  /* Bars grow when the panel scrolls into view. */
+  @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+    .stats:not(:global(.is-visible)) .fill,
+    .stats:not(:global(.is-visible)) .seg {
+      width: 0;
+    }
+  }
+</style>

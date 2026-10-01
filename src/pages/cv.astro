@@ -1,0 +1,131 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+import Timeline from '../components/Timeline.astro';
+import PublicationList from '../components/PublicationList.astro';
+import {
+  awards,
+  certifications,
+  education,
+  industryExperience,
+  languages,
+  researchExperience,
+  researchProfile,
+} from '../data/cv';
+import { site } from '../data/site';
+import { getPublications } from '../lib/publications';
+import { url } from '../lib/url';
+
+const publications = await getPublications();
+const pdf = url(site.cv);
+---
+
+<BaseLayout title="CV" description="Curriculum Vitae of Javier Parada.">
+  <div class="stack">
+    <header class="page-header split">
+      <div class="head">
+        <span class="eyebrow">Curriculum Vitae</span>
+        <h1>{site.firstName} <strong>{site.lastName}</strong></h1>
+        <p>{researchProfile}</p>
+      </div>
+      <div class="downloads">
+        <a class="button" href={pdf} download>
+          <Icon name="file-down" size={16} /> Download PDF
+        </a>
+        <a class="button ghost" href={pdf} target="_blank" rel="noopener">View in browser</a>
+      </div>
+    </header>
+
+    <section>
+      <h2 class="section-title" data-reveal>Education</h2>
+      <Timeline items={education} />
+    </section>
+
+    <section>
+      <h2 class="section-title" data-reveal>Research Experience</h2>
+      <Timeline items={researchExperience} />
+    </section>
+
+    <section>
+      <div class="section-head" data-reveal>
+        <h2>Publications</h2>
+        <a href={url('/publications')}>By category →</a>
+      </div>
+      <PublicationList items={publications} />
+    </section>
+
+    <section>
+      <h2 class="section-title" data-reveal>Awards</h2>
+      <Timeline items={awards} />
+    </section>
+
+    <section>
+      <h2 class="section-title" data-reveal>Certifications</h2>
+      <Timeline items={certifications} />
+    </section>
+
+    <section>
+      <h2 class="section-title" data-reveal>Industry Experience</h2>
+      <Timeline items={industryExperience} />
+    </section>
+
+    <section>
+      <h2 class="section-title" data-reveal>Languages</h2>
+      <ul class="languages" data-reveal-stagger="60">
+        {
+          languages.map((l) => (
+            <li>
+              <span>{l.name}</span>
+              <span class="muted">{l.level}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .stack {
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+  }
+  .head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .head .updated {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+  }
+  .downloads {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  .downloads .button { justify-content: center; }
+
+  .languages {
+    list-style: none;
+  }
+  .languages > li {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+    padding-block: 0.4rem;
+    font-size: 0.95rem;
+  }
+  @media (min-width: 768px) {
+    .languages > li {
+      grid-template-columns: 9.5rem 1fr;
+      gap: 1.75rem;
+    }
+    .languages > li > span:first-child { text-align: right; }
+  }
+  .languages > li > span:first-child { font-weight: 600; color: var(--accent); }
+  .languages > li > span:last-child { font-family: var(--font-serif); color: var(--fg-soft); }
+</style>

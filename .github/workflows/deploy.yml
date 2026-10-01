@@ -28,23 +28,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate static site
-        run: npm run generate
+      - name: Build static site
+        run: npm run build
         env:
-          NUXT_APP_BASE_URL: /
           FLICKR_USER: ${{ vars.FLICKR_USER || 'tanukifilm' }}
 
       - name: Preserve CNAME
-        run: cp CNAME .output/public/CNAME
+        run: cp CNAME dist/CNAME
 
       - name: Add .nojekyll
-        run: touch .output/public/.nojekyll
+        run: touch dist/.nojekyll
 
       - name: Deploy to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: .output/public
+          folder: dist
           clean: true
           single-commit: true
           commit-message: "Deploy ${{ github.sha }}"
