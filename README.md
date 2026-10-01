@@ -15,8 +15,8 @@ npm run check    # type-check .astro and .ts files
 ## Content
 
 - `src/data/site.ts`: name, description, contact, social links, navigation.
-- `src/data/cv.ts`: CV sections (education, research and industry experience, awards,
-  certifications, languages, research interests). Institution logos live in `src/assets/logos/`.
+- `src/data/cv.ts`: CV sections (experience, education, awards, certifications, languages,
+  research interests), shown on /cv in that order. Institution logos live in `src/assets/logos/`.
 - `src/content/publications/*.md`: one file per publication (schema in `src/content.config.ts`).
   `type` is `journal`, `conference` or `national-conference`. Covers/logos live in
   `src/assets/publications/`; square images are shown as logos and portrait ones as journal covers.
@@ -24,10 +24,10 @@ npm run check    # type-check .astro and .ts files
   doesn't matter), optional `endDate` for multi-day events, `category`, `summary` (one line for the
   home page), `location`, `links`, related `publications` (file names without `.md`), optional
   `image`; the body is the detailed text.
-- `src/content/projects/*.md`: one file per project (`description`, `url`, `category`,
+- `src/content/projects/*.md` (page hidden for now, see `src/data/site.ts`): one file per project (`description`, `url`, `category`,
   `importance`, `stack`, optional `emoji`).
 - `src/data/authors.ts`: ORCID iDs of co-authors, linked from author names.
-- `src/data/gallery.json`: photos scraped from the Flickr photostream by `scripts/fetch-flickr.mjs`
+- `src/data/gallery.json` (page hidden for now, see `src/data/site.ts`): photos scraped from the Flickr photostream by `scripts/fetch-flickr.mjs`
   (runs before every build). Photos are grouped by the country tags listed in
   `src/data/countries.json`.
 - `public/pdf/cv.pdf`: downloadable CV.
